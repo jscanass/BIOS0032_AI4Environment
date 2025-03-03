@@ -82,6 +82,32 @@ dat %>%
   summarise(nbird = n_distinct(bird))
 ```
 
+```{r}
+library(sf)
+library(mapgl)
+
+dat_sf <- dat %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_cast("POINT")
+
+#razorbills = subset(dat_sf, species == "tRAZO")
+maplibre(bounds = razorbills) %>%
+  add_circle_layer(
+    id = "poi-layer",
+    source = dat_sf,
+    circle_color = match_expr(
+            "species",
+            values = c(
+                "tCOGU", "tRAZO", "tSHAG"
+            ),
+            stops = c(
+                "#1f78b4", "#33a02c",
+                "#e31a1c"
+            )
+        ))
+
+```
+
 ## Metrics/Features
 
 ### Speed
