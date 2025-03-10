@@ -1,8 +1,8 @@
 ---
 title: 'AI for the Environment: from AI to Ecological Models'
 subtitle: 'Week 9: morning workshop - SOLUTIONS'
-author: "Rory Gibb & Ella Browning"
-date: "07/03/2023"
+author: "Rory Gibb & Ella Browning; adapted by Peggy Bevan"
+date: "10/03/2025"
 output: pdf_document
 ---
 
@@ -10,11 +10,11 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-# Morning workshop: Spatial data processing, analysis and modelling in R
+# Workshop 1: Spatial data processing, analysis and modelling in R
 
-Today we'll be exploring and analysing some camera trap data from the Masai Mara collected as part of the Biome Health project - see the lecture slides for a general summary of the data and the project. R provides an excellent set of pacakges for fast and reproducible GIS functionality, which we'll be using in this morning's workshop. Many of these functions for spatial data work are contained within the simple features (*sf*) package. There is a nice tutorial here: https://learning.nceas.ucsb.edu/2019-11-RRCourse/spatial-vector-analysis-using-sf.html 
+Today we'll be exploring and analysing some camera trap data from the Masai Mara collected as part of the Biome Health project - see the lecture slides for a general summary of the data and the project. R provides an excellent set of pacakges for fast and reproducible GIS functionality, which we'll be using in this workshop. Many of these functions for spatial data work are contained within the simple features (*sf*) package. There is a nice tutorial here: https://learning.nceas.ucsb.edu/2019-11-RRCourse/spatial-vector-analysis-using-sf.html 
 
-The goal of this morning's session is to familiarise you with with several of these tools for data processing, analysis and visualisation, and there will be code snippets with short exercises interspersed, along with some larger extension exercises at the end if you have time. All the data and environmental layers you'll need for the workshop are in the GitHub, in the "week9_fromAIToEcologicalModels folder". Please download the whole folder and set this as your working directory, then all the materials you will need are contained within the "data" subfolder. 
+The goal of this session is to familiarise you with with several of these tools for data processing, analysis and visualisation, and there will be code snippets with short exercises interspersed, along with some larger extension exercises at the end if you have time. All the data and environmental layers you'll need for the workshop are in the GitHub, in the "8_AIToEcologicalModels folder". Please download the whole folder and set this as your working directory, then all the materials you will need are contained within the "data" subfolder. 
 
 ```{r echo = TRUE}
 # dependencies
@@ -36,7 +36,7 @@ Let's begin by looking at our camera trap survey locations - these are examples 
 
 ```{r results='hide', fig.show='hide'}
 #read locations
-locs = read.csv("./data/kenya/survey/bh_camera_locations.csv")
+locs = read.csv("../data/kenya/survey/bh_camera_locations.csv")
 
 # use 'head()' and plot() to look at the data 
 # What are the units of the XY coordinates?
@@ -53,7 +53,7 @@ locs = sf::st_transform(locs,
                         crs = "+proj=utm +zone=36 +south +datum=WGS84 +units=m +no_defs")
 ```
 
-Now we have a "simple feature collection" with 150 points, 1 per sampling site. SF objects can be subsetted and worked with in dplyr like a data frame/tibble, but also have an additional "geometry" column that stores the geographic information (here, lat-lon point locations). We also specified a coordinate reference system when we align this to other spatial data we need to ensure these are aligned.
+Now we have a "simple feature collection" with 178 points, 1 per sampling site. SF objects can be subsetted and worked with in dplyr like a data frame/tibble, but also have an additional "geometry" column that stores the geographic information (here, lat-lon point locations). We also specified a coordinate reference system - when we align this to other spatial data we need to ensure these are aligned.
 
 Use *head()* to take a look at the 'sf' object and how it is formatted. *Note*: this provides information about the spatial extent, units and CRS. To plot the geometry you can call *plot(sf_object$geometry)*
 
@@ -70,11 +70,11 @@ Polygon data are stored as shapefiles. We'll read in these shapefiles, transform
 
 ```{r message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
 # overall study area (stored as an ESRI shapefile)
-study_area = sf::st_read("./data/kenya/survey/shapefiles/Study_area.shp") %>%
+study_area = sf::st_read("../data/kenya/survey/shapefiles/Study_area.shp") %>%
   sf::st_transform(crs = sf::st_crs(locs))
 
 # nature conservancies and protected areas that the sampling was taking place within 
-conservancies = sf::st_read("./data/kenya/survey/shapefiles/Protected_areas.shp") %>%
+conservancies = sf::st_read("../data/kenya/survey/shapefiles/Protected_areas.shp") %>%
   sf::st_transform(crs = sf::st_crs(locs))
 
 # take a look at these by calling head(); what do you notice about the geometry type?
@@ -108,7 +108,7 @@ In the 'data' folder is a CSV of sampling effort per camera; values of NA mean t
 
 ```{r results='hide', fig.show='hide'}
 # read csv of effort and take a look by calling head()
-effort = read.csv("./data/kenya/survey/bh_camera_samplingeffort.csv")
+effort = read.csv("../data/kenya/survey/bh_camera_samplingeffort.csv")
 
 # use dplyr's filter, group_by and summarise functions
 # to keep only dates when sampling was active
@@ -169,7 +169,7 @@ locs %>%
 
 ## Processing, exploring and mapping species detection data for a study species 
 
-In the data folder is a CSV containing the tagged camera trap images data for a selection of species identified in the study area. This data frame contains records of individual images, which were tagged to species level - in this case, they were manually tagged by human uers, but could in other instances be automatically classified using an AI classifier. It also contains information about the site, date, species and other key metrics.
+In the data folder is a CSV containing the tagged camera trap images data for a selection of species identified in the study area. This data frame contains records of individual images, which were tagged to species level - in this case, they were manually tagged by human users, but could in other instances be automatically classified using an AI classifier. It also contains information about the site, date, species and other key metrics.
 
 If we want to look at how our species are distributed over space, we can process these to site level metrics and map them, just like we did with the sampling effort above. First, let's read in and explore the data.
 
@@ -178,7 +178,7 @@ If we want to look at how our species are distributed over space, we can process
 # camera trapimages data
 ctd = read.csv("./data/kenya/survey/bh_camera_images_mara.csv")
 
- # explore the data frame using the head(), summary() and table() functions to 
+ # explore the data frame using the head(), summary(), unique() and table() functions to 
 # find out what the data contain
 # (e.g. how many observations per site/species?)
 
@@ -292,7 +292,7 @@ For this, we'll mainly use the "terra" package (and sometimes its predecessor, "
 
 ```{r results='hide', fig.show='hide'}
 # read in habitat raster (saved as a GeoTiff file)
-hab = terra::rast("./data/kenya/environment/habitat/habitatfinal.tif")
+hab = terra::rast("../data/kenya/environment/habitat/habitatfinal.tif")
 
 # call "hab" in the console to take a look at the raster properties
 # you can look at the CRS details by calling crs(hab) - what units is the projection in?
@@ -451,7 +451,7 @@ locs_ext = terra::extract(hab %in% 3,
 
 locs$open_250m = locs_ext$habitatfinal
 
-# almost perfectly collinear! why?
+ # almost perfectly collinear! why?
 # what does this mean for inferring ecological relationships with habitat structure?
 ggplot(locs) + geom_point(aes(open_250m, closed_250m))
 
@@ -481,14 +481,14 @@ ggplot(locs) + geom_point(aes(closed_500m, prop_detected))
 ```
 
 ### Exercise 5 
-The folder "./data/kenya/environment/chelsa_climatology/" contains a mean climatology (annual mean temperature, averaged betwen 1979 and 2010) for our study location, from CHELSA. Read in the raster, plot for the study area, and overlay points. Extract the temperature values at each location and plot them.
+The folder "../data/kenya/environment/chelsa_climatology/" contains a mean climatology (annual mean temperature, averaged betwen 1979 and 2010) for our study location, from CHELSA. Read in the raster, plot for the study area, and overlay points. Extract the temperature values at each location and plot them.
 
 * What do you notice? How useful do you think this covariate might be in explaining the distribution of species across our study area?
 
 ### *Exercise 5 - Solution*
 
 ```{r fig.keep='first'}
-chelsa = terra::rast("./data/kenya/environment//chelsa_climatology/chelsa_bio01_mara.tif")
+chelsa = terra::rast("../data/kenya/environment//chelsa_climatology/chelsa_bio01_mara.tif")
 plot(chelsa); plot(locs$geometry, add=TRUE)
 # transform location projection to pop dens raster projection
 locs_reproj = sf::st_transform(locs, crs=crs(chelsa)) 

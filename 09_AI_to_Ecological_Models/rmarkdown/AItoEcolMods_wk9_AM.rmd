@@ -1,42 +1,53 @@
 ---
 title: 'AI for the Environment: from AI to Ecological Models'
 subtitle: 'Week 9: morning workshop'
-author: "Rory Gibb & Ella Browning"
-date: "07/03/2023"
+author: "Rory Gibb & Ella Browning; adapted by Peggy Bevan"
+date: "10/03/2025"
 output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-# Morning workshop: Spatial data processing, analysis and modelling in R
+# Workshop 1: Spatial data processing, analysis and modelling in R
 
-Today we'll be exploring and analysing some camera trap data from the Masai Mara collected as part of the Biome Health project - see the lecture slides for a general summary of the data and the project. R provides an excellent set of packages for fast and reproducible GIS functionality, which we'll be using in this morning's workshop. Many of these functions for spatial data work are contained within the simple features (*sf*) package. There is a nice tutorial here: https://learning.nceas.ucsb.edu/2019-11-RRCourse/spatial-vector-analysis-using-sf.html 
+Today we'll be exploring and analysing some camera trap data from the Masai Mara collected as part of the Biome Health project - see the lecture slides for a general summary of the data and the project.
+R provides an excellent set of packages for fast and reproducible GIS functionality, which we'll be using in this afternoon's workshop.
+Many of these functions for spatial data work are contained within the simple features (*sf*) package.
+There is a nice tutorial here: <https://learning.nceas.ucsb.edu/2019-11-RRCourse/spatial-vector-analysis-using-sf.html>
 
-The goal of this morning's session is to familiarise you with with several of these tools for data processing, analysis and visualisation, and there will be code snippets with short exercises interspersed, along with some larger extension exercises at the end if you have time. All the data and environmental layers you'll need for the workshop are in the GitHub, in the "09_AI_to_Ecological_Models" folder. Please download the whole folder and set this as your working directory, then all the materials you will need are contained within the "data" subfolder. 
+The goal of this afternoon's session is to familiarise you with with several of these tools for data processing, analysis and visualisation, and there will be code snippets with short exercises interspersed, along with some larger extension exercises at the end if you have time.
+All the data and environmental layers you'll need for the workshop are in the GitHub, in the "8_AIToEcologicalModels" folder.
+Please download the whole folder and set this as your working directory, then all the materials you will need are contained within the "data" subfolder.
 
 ```{r echo = TRUE}
 # dependencies
-library(dplyr); library(magrittr); library(terra); library(rgdal); library(sf); 
+library(dplyr); library(magrittr); library(terra); library(sf); 
 library(ggplot2); library(lme4); library(rstudioapi);library(MetBrewer); library(tibble)
-
+#library(rgdal)
 ## -- NB -- ##
 # Ensure the most up-to-date version of 'terra' is installed 
 
 # automatically set file path (or if this doesn't work, manually set your 
-# working directory to the folder "09_AI_to_Ecological_Models")
+# working directory to the folder "8_AItoEcologicalModels")
 PATH = dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(PATH)
 ```
 
 ### Point, polygon data and mapping in '*sf*'
 
-Let's begin by looking at our camera trap survey locations - these are examples of point data (xy coordinates). We'll read them in, look at them and turn them into an SF (simple features) object for easy spatial handling. Pay attention to the units that the coordinates are stored within (for example, metres versus degrees long-lat); when we are working with several spatial objects, we need to ensure their coordinate reference systems are harmonised so each is comparable.
+Let's begin by looking at our camera trap survey locations - these are examples of point data (xy coordinates).
+We'll read them in, look at them and turn them into an SF (simple features) object for easy spatial handling.
+Pay attention to the units that the coordinates are stored within (for example, metres versus degrees long-lat); when we are working with several spatial objects, we need to ensure their coordinate reference systems are harmonised so each is comparable.
 
 ```{r results='hide', fig.show='hide'}
 #read locations
-locs = read.csv("./data/kenya/survey/bh_camera_locations.csv")
+file.exists("../data/kenya/survey/bh_camera_locations.csv")
+locs = read.csv("../data/kenya/survey/bh_camera_locations.csv")
 
 # use 'head()' and plot() to look at the data 
 # What are the units of the XY coordinates?
@@ -52,9 +63,13 @@ locs = sf::st_as_sf(x = locs,
 locs = sf::st_transform(locs, crs = "+proj=utm +zone=36 +south +datum=WGS84 +units=m +no_defs")
 ```
 
-Now we have a "simple feature collection" with 150 points, 1 per sampling site. SF objects can be subsetted and worked with in dplyr like a data frame/tibble, but also have an additional "geometry" column that stores the geographic information (here, lat-lon point locations). We also specified a coordinate reference system when we align this to other spatial data we need to ensure these are aligned.
+Now we have a "simple feature collection" with 178 points, 1 per sampling site.
+SF objects can be subsetted and worked with in dplyr like a data frame/tibble, but also have an additional "geometry" column that stores the geographic information (here, lat-lon point locations).
+We also specified a coordinate reference system - when we align this to other spatial data we need to ensure these are aligned.
 
-Use *head()* to take a look at the 'sf' object and how it is formatted. *Note*: this provides information about the spatial extent, units and CRS. To plot the geometry you can call *plot(sf_object$geometry)*
+Use *head()* to take a look at the 'sf' object and how it is formatted.
+*Note*: this provides information about the spatial extent, units and CRS.
+To plot the geometry you can call *plot(sf_object\$geometry)*
 
 ```{r echo=FALSE, results='hide', fig.keep='last', out.width="70%"}
 # call head() on the sf object - what can you see about the geometry type? 
@@ -65,15 +80,16 @@ plot(locs$geometry)
 ```
 
 The camera trap locations above were point data, now let's read some polygon data - these are the boundaries of the nature conservancies in the Masai Mara, and of the overall study area.
-Polygon data are stored as shapefiles. We'll read in these shapefiles, transform them to the same CRS as the locations to ensure everything is harmonised, and plot.
+Polygon data are stored as shapefiles.
+We'll read in these shapefiles, transform them to the same CRS as the locations to ensure everything is harmonised, and plot.
 
 ```{r message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
 # overall study area (stored as an ESRI shapefile)
-study_area = sf::st_read("./data/kenya/survey/shapefiles/Study_area.shp") %>%
+study_area = sf::st_read("../data/kenya/survey/shapefiles/Study_area.shp") %>%
   sf::st_transform(crs = sf::st_crs(locs))
 
 # nature conservancies and protected areas that the sampling was taking place within 
-conservancies = sf::st_read("./data/kenya/survey/shapefiles/Protected_areas.shp") %>%
+conservancies = sf::st_read("../data/kenya/survey/shapefiles/Protected_areas.shp") %>%
   sf::st_transform(crs = sf::st_crs(locs))
 
 # take a look at these by calling head(); what do you notice about the geometry type?
@@ -81,9 +97,10 @@ conservancies = sf::st_read("./data/kenya/survey/shapefiles/Protected_areas.shp"
 
 ```
 
-*sf* is really easy to interface with ggplot for visualisation and mapping. We can call *geom_sf()* to plot sf objects, and pass them usual ggplot aesthetics.
+*sf* is really easy to interface with ggplot for visualisation and mapping.
+We can call *geom_sf()* to plot sf objects, and pass them usual ggplot aesthetics.
 
-Let's create a map of sampling sites over space and how they correspond to the different nature conservancies in the area. 
+Let's create a map of sampling sites over space and how they correspond to the different nature conservancies in the area.
 
 ```{r out.width="70%"}
 # pass ggplot the study area, conservancies and the locations
@@ -96,18 +113,21 @@ ggplot() +
 
 ```
 
-Nice! So we can see where our camera traps were located and how the study was designed spatially - this is a great start.
-
+Nice!
+So we can see where our camera traps were located and how the study was designed spatially - this is a great start.
 
 ## Mapping a metric of interest over space
 
-During camera trap studies, not every camera trap is operational for the same period of time. It depends on when they were installed, whether there were any malfunction days, and whether they were damaged in situ (e.g. by wildlife). So when we analyse camera trap data, we need to know the distribution of sampling effort - when, and for how long, each camera trap was sampling for.
+During camera trap studies, not every camera trap is operational for the same period of time.
+It depends on when they were installed, whether there were any malfunction days, and whether they were damaged in situ (e.g. by wildlife).
+So when we analyse camera trap data, we need to know the distribution of sampling effort - when, and for how long, each camera trap was sampling for.
 
-In the 'data' folder is a CSV of sampling effort per camera; values of NA mean the camera was not installed; 0 means installed but not actively sampling; and 1 means actively sampling. Let's read in the effort csv and map the distribution of effort over space. 
+In the 'data' folder is a CSV of sampling effort per camera; values of NA mean the camera was not installed; 0 means installed but not actively sampling; and 1 means actively sampling.
+Let's read in the effort csv and map the distribution of effort over space.
 
 ```{r results='hide', fig.show='hide'}
 # read csv of effort and take a look by calling head()
-effort = read.csv("./data/kenya/survey/bh_camera_samplingeffort.csv")
+effort = read.csv("../data/kenya/survey/bh_camera_samplingeffort.csv")
 
 # use dplyr's filter, group_by and summarise functions
 # to keep only dates when sampling was active
@@ -132,7 +152,8 @@ ggplot() +
   theme_classic()
 ```
 
-It's very easy to run all kinds of spatial operations using *sf*. As one example, we might be interested in understanding the distances between our sampling locations, i.e. how far apart were the cameras?
+It's very easy to run all kinds of spatial operations using *sf*.
+As one example, we might be interested in understanding the distances between our sampling locations, i.e. how far apart were the cameras?
 *sf::st_distance()* allows us to generate a pairwise matrix of great circle distances between our points, which we could then use to visualise the distances between any given camera and all the others.
 
 **In the solutions** we've included an example of this, so take a look if you'd like to explore sf functionality further.
@@ -165,19 +186,21 @@ locs %>%
 
 ```
 
+## Processing, exploring and mapping species detection data for a study species
 
-## Processing, exploring and mapping species detection data for a study species 
+In the data folder is a CSV containing the tagged camera trap images data for a selection of species identified in the study area.
+This data frame contains records of individual images, which were tagged to species level - in this case, they were manually tagged by human users, but could in other instances be automatically classified using an AI classifier.
+It also contains information about the site, date, species and other key metrics.
 
-In the data folder is a CSV containing the tagged camera trap images data for a selection of species identified in the study area. This data frame contains records of individual images, which were tagged to species level - in this case, they were manually tagged by human uers, but could in other instances be automatically classified using an AI classifier. It also contains information about the site, date, species and other key metrics.
-
-If we want to look at how our species are distributed over space, we can process these to site level metrics and map them, just like we did with the sampling effort above. First, let's read in and explore the data.
+If we want to look at how our species are distributed over space, we can process these to site level metrics and map them, just like we did with the sampling effort above.
+First, let's read in and explore the data.
 
 ```{r results='hide', fig.show='hide'}
 
 # camera trapimages data
-ctd = read.csv("./data/kenya/survey/bh_camera_images_mara.csv")
+ctd = read.csv("../data/kenya/survey/bh_camera_images_mara.csv")
 
- # explore the data frame using the head(), summary() and table() functions 
+# explore the data frame using the head(), summary(), unique() and table() functions 
 # to find out what the data contain
 # (e.g. how many observations per site/species?)
 
@@ -198,7 +221,8 @@ as.data.frame(table(ctd$Species, ctd$Date)) %>%
 
 ```
 
-Now let's look more closely at a focal study species, the hare (*Lepus capensis*, the Cape hare). We'll use the same principles as above to map the distribution of our species detections over space, looking both at the total number of images, and the number of days in which a species was detected.
+Now let's look more closely at a focal study species, the hare (*Lepus capensis*, the Cape hare).
+We'll use the same principles as above to map the distribution of our species detections over space, looking both at the total number of images, and the number of days in which a species was detected.
 
 ```{r}
 # species of interest
@@ -218,9 +242,9 @@ sp_det = ctd %>%
 # What do you notice - why might they look different?
 ```
 
-## Exercise 1 
+## Exercise 1
 
-* Combine the species detection data with the locations of the camera traps sf_object using *left_join()*. (Note: if there are unmatched rows between the two dataframes being combined, dplyr automatically sets the values to those for NA - you'll need to change these to zeroes so our data contain non-detections). Modify the code above to map these two metrics over space. How similar are the spatial patterns of number of images versus number of days detected? Why might they be more different, and which is a more suitable measure of site occupancy?
+-   Combine the species detection data with the locations of the camera traps sf_object using *left_join()*. (Note: if there are unmatched rows between the two dataframes being combined, dplyr automatically sets the values to those for NA - you'll need to change these to zeroes so our data contain non-detections). Modify the code above to map these two metrics over space. How similar are the spatial patterns of number of images versus number of days detected? Why might they be more different, and which is a more suitable measure of site occupancy?
 
 ```{r echo = FALSE, results='hide', fig.keep='last'}
 
@@ -253,15 +277,17 @@ gridExtra::grid.arrange(p1, p2, nrow=2)
 
 ```
 
-From our work so far, what do you think would be an appropriate measure to use if we were to use a model to analyse the occupancy of this species over space? 
-Would number of days in which a species was detected be an appropriate measure to use by itself? If not, why not?
+From our work so far, what do you think would be an appropriate measure to use if we were to use a model to analyse the occupancy of this species over space?
+Would number of days in which a species was detected be an appropriate measure to use by itself?
+If not, why not?
 *Hint: what was the distribution of sampling effort like across cameras?*
 
-We need to account for the fact that effort differed between the cameras! Some were operational for very few days, so the number of days detected is not directly comparable between these and cameras that were active for several weeks. 
+We need to account for the fact that effort differed between the cameras!
+Some were operational for very few days, so the number of days detected is not directly comparable between these and cameras that were active for several weeks.
 
 ## Exercise 2
 
-* Adjust for effort by calculating the proportion of sampled days in which the species was detected in each location, and then map this metric over space. Does this effort-corrected measure of occupancy look different to the metrics that did not account for effort?
+-   Adjust for effort by calculating the proportion of sampled days in which the species was detected in each location, and then map this metric over space. Does this effort-corrected measure of occupancy look different to the metrics that did not account for effort?
 
 ```{r echo=FALSE}
 # calculate proportion detected
@@ -278,16 +304,20 @@ ggplot() +
 
 ```
 
-
-## Mapping and visualising environmental raster data using *terra* 
+## Mapping and visualising environmental raster data using *terra*
 
 One of the nice things abut geolocated data is that it's easy to align our species detections with associated environmental information from raster data.
 
-For this, we'll mainly use the "terra" package (and sometimes its predecessor, "raster"; there is a nice introduction and code examples here: https://rspatial.org/pkg/index.html). A raster is essentially a big matrix with geographical information associated with each grid cell. Like sf objects, it has a coordinate reference system that links each cell's XY coordinates with a geographic location. Just like other spatial objects, these follow a particular map projection to map coordinate values to a location on the spherical earth. As in this workshop, these are stored in standardised formats such as GeoTiffs. We'll start by reading, plotting and exploring some rasters of habitat class across the Masai Mara. 
+For this, we'll mainly use the "terra" package (and sometimes its predecessor, "raster"; there is a nice introduction and code examples here: <https://rspatial.org/pkg/index.html>).
+A raster is essentially a big matrix with geographical information associated with each grid cell.
+Like sf objects, it has a coordinate reference system that links each cell's XY coordinates with a geographic location.
+Just like other spatial objects, these follow a particular map projection to map coordinate values to a location on the spherical earth.
+As in this workshop, these are stored in standardised formats such as GeoTiffs.
+We'll start by reading, plotting and exploring some rasters of habitat class across the Masai Mara.
 
 ```{r results='hide', fig.show='hide'}
 # read in habitat raster (saved as a GeoTiff file)
-hab = terra::rast("./data/kenya/environment/habitat/habitatfinal.tif")
+hab = terra::rast("../data/kenya/environment/habitat/habitatfinal.tif")
 
 # call "hab" in the console to take a look at the raster properties
 # you can look at the CRS details by calling crs(hab) - what units is the projection in?
@@ -304,7 +334,9 @@ terra::values(hab)[ terra::values(hab) > 200 ] = NA
 terra::plot(hab)
 ```
 
-We need to ensure the coordinate reference systems are harmonised with our *sf* spatial objects, which we do by reprojecting the raster into the same reference CRS. This effectively overlays our current raster onto a raster projected into the new crs, and then populates the new raster with values. We need to choose a method for this; because our raster is categorical (habitat classes) we use the nearest neighbour distance.
+We need to ensure the coordinate reference systems are harmonised with our *sf* spatial objects, which we do by reprojecting the raster into the same reference CRS.
+This effectively overlays our current raster onto a raster projected into the new crs, and then populates the new raster with values.
+We need to choose a method for this; because our raster is categorical (habitat classes) we use the nearest neighbour distance.
 If it was continuous, it might be more appropriate to use an interpolation method.
 
 ```{r results='hide', fig.show='hide'}
@@ -324,13 +356,15 @@ ggplot() +
 
 ```
 
-
-The terra package (and its predecessor raster) also provides efficient ways to manipulate and do grid cell-wise calculations across rasters. Let's look at an example for some human population data for Kenya. We'll read in high-resolution population per grid-cell estimates from WorldPop, which are at ~100x100m grid cell resolution, aggregate to a coarser scale (~500m) then produce a raster of log population density, to  visualise how this metric varies across our study area. Here we'll read in some population data, aggregate the raster to coarser resolution, then calculate population density (in persons per square kilometre) rather than total population.
+The terra package (and its predecessor raster) also provides efficient ways to manipulate and do grid cell-wise calculations across rasters.
+Let's look at an example for some human population data for Kenya.
+We'll read in high-resolution population per grid-cell estimates from WorldPop, which are at \~100x100m grid cell resolution, aggregate to a coarser scale (\~500m) then produce a raster of log population density, to visualise how this metric varies across our study area.
+Here we'll read in some population data, aggregate the raster to coarser resolution, then calculate population density (in persons per square kilometre) rather than total population.
 
 ```{r results='hide', fig.keep='last', out.width="70%"}
 
 # population raster
-pop = terra::rast("./data/kenya/environment/population/worldpop_ppp_mara.tif")
+pop = terra::rast("../data/kenya/environment/population/worldpop_ppp_mara.tif")
 plot(pop)
 
 # this is at very fine scale (~100m), so let's aggregate to a coarser (500m) raster
@@ -358,7 +392,8 @@ ggplot() +
 
 ## Extracting environmental values at sampling locations
 
-As we have geographical locations of our camera traps (XY point coordinates), and georeferenced raster data in the same projection, it is now straightforward to overlay our sampling locations on the raster and extract the local environmental information. This provides an easy means to access additional geographical covariates for asking ecological questions.
+As we have geographical locations of our camera traps (XY point coordinates), and georeferenced raster data in the same projection, it is now straightforward to overlay our sampling locations on the raster and extract the local environmental information.
+This provides an easy means to access additional geographical covariates for asking ecological questions.
 
 First, let's extract information on population density in the grid cell of each sampling site - here, we're only extracting the value in the specific grid cell that the camera trap falls within.
 
@@ -378,8 +413,12 @@ locs$popdens_log = locs_pd$popdens_log
 
 ```
 
-Next, we'll extract information about the habitat surrounding each sampling site. Our habitat raster ('hab') is at fine resolution (30m), so extracting the value only in the grid cell the point falls in might be less useful to describing the overall habitat conditions in surrounding area. To deal with this, we can create a buffer around each point (a circular polygon with a user-defined radius, e.g. 250 metres) and then average the habitat conditions within that local area. When we are developing our modelling pipeline, we can think about what size of buffer might be most relevant and how this maps onto our species. Experiment with the code below to see what it looks like when we change the width of the buffer around each camera trap. *Note:* the units of "dist" in st_buffer are the units of its coordinate reference system, which might be metres, or might be degrees long/lat - make sure you check this when you are doing your own projects, and plot the buffers to make sure they're doing what you think!
-
+Next, we'll extract information about the habitat surrounding each sampling site.
+Our habitat raster ('hab') is at fine resolution (30m), so extracting the value only in the grid cell the point falls in might be less useful to describing the overall habitat conditions in surrounding area.
+To deal with this, we can create a buffer around each point (a circular polygon with a user-defined radius, e.g. 250 metres) and then average the habitat conditions within that local area.
+When we are developing our modelling pipeline, we can think about what size of buffer might be most relevant and how this maps onto our species.
+Experiment with the code below to see what it looks like when we change the width of the buffer around each camera trap.
+*Note:* the units of "dist" in st_buffer are the units of its coordinate reference system, which might be metres, or might be degrees long/lat - make sure you check this when you are doing your own projects, and plot the buffers to make sure they're doing what you think!
 
 ```{r results='hide', fig.keep='last', out.width="70%"}
 # plot the habitat raster - it has 6 non-NA classes
@@ -413,7 +452,7 @@ locs_ext = terra::extract(hab %in% 4:5, # closed/semi-closed
 #                                         fun = 'mean')
 # plot(locs_ext$habitatfinal, locs_ext2) 
 
-# add into our locations sf
+# add the habitat variable into our locations sf
 locs$closed_250m = locs_ext$habitatfinal
 
 # scatterplots against response variable and other covariates
@@ -431,29 +470,34 @@ ggplot() +
 
 ```
 
+## Exercise 3.
 
-## Exercise 3. 
-Extract and visualise the distribution of *open* habitat in a 250m buffer around each camera. Use scatter plots to explore its relationship to closed habitat, to population density, and to our species of interest.
+Extract and visualise the distribution of *open* habitat in a 250m buffer around each camera.
+Use scatter plots to explore its relationship to closed habitat, to population density, and to our species of interest.
 
-* What do you notice? How might this impact how we later analyse the data?
+-   What do you notice? How might this impact how we later analyse the data?
 
 ## Extension exercises
 
-**If you have time**, here are some other things to try. 
+**If you have time**, here are some other things to try.
 
-### Exercise 4. 
-Try extracting the same habitat types with a larger buffer (e.g. 1km or 2km). How different do the values look? 
- * Why might this matter, and if you were analysing these data to answer an ecological question, how might you choose an appropriate buffer size?
+### Exercise 4.
 
-### Exercise 5 
-The folder "./data/kenya/environment/chelsa_climatology/" contains a mean climatology (annual mean temperature, averaged betwen 1979 and 2010) for our study location, from CHELSA. Read in the raster, plot for the study area, and overlay points. Extract the temperature values at each location and plot them.
+Try extracting the same habitat types with a larger buffer (e.g. 1km or 2km).
+How different do the values look?
+\* Why might this matter, and if you were analysing these data to answer an ecological question, how might you choose an appropriate buffer size?
 
-* What do you notice? How useful do you think this covariate might be in explaining the distribution of species across our study area?
+### Exercise 5
+
+The folder "./data/kenya/environment/chelsa_climatology/" contains a mean climatology (annual mean temperature, averaged betwen 1979 and 2010) for our study location, from CHELSA.
+Read in the raster, plot for the study area, and overlay points.
+Extract the temperature values at each location and plot them.
+
+-   What do you notice? How useful do you think this covariate might be in explaining the distribution of species across our study area?
 
 ### Exercise 6
-The species detections dataframe also contains data for several other species. By modifying the code above, explore the distribution of total number of images, number days detected, and proportion days detected for other species, using histograms, scatterplots and mapping. 
 
-* Are there differences between species in the relationship between number of images, number of days detected, and proportion days detected? How do you think these could relate to the sampling design, and to the ecology of each species?
+The species detections dataframe also contains data for several other species.
+By modifying the code above, explore the distribution of total number of images, number days detected, and proportion days detected for other species, using histograms, scatterplots and mapping.
 
-
-
+-   Are there differences between species in the relationship between number of images, number of days detected, and proportion days detected? How do you think these could relate to the sampling design, and to the ecology of each species?
