@@ -22,3 +22,7 @@ echo "Server is up!"
 # Install models
 ollama pull gemma3
 ollama pull qwen3
+
+# Download data
+wget https://raw.githubusercontent.com/MScEcologyAndDataScienceUCL/BIOS0032_AI4Environment/refs/heads/main/Text/sample_abstracts.csv
+wget https://github.com/MScEcologyAndDataScienceUCL/BIOS0032_AI4Environment/raw/refs/heads/main/Text/test_set.xlsx
