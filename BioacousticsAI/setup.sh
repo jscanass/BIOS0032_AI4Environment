@@ -3,6 +3,7 @@
 # Install additional dependencies
 uv pip install "wavio>=0.0.9"
 uv pip install "batdetect2==1.0.8"
+uv pip install git+https://github.com/google-research/perch-hoplite.git
 
 # Download data
 gdown 1UWPoP6J9bh9l7Q-cRYsd2I6rrQGnjMUJ
