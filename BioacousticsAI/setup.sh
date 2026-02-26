@@ -9,7 +9,7 @@ uv pip install git+https://github.com/google-research/perch-hoplite.git
 gdown 1Jw2WDTv1qiJsMVztVueu2NxPa_Vy2Xss
 
 # Unzip data
-unzip acoustic_data.zip
+unzip data.zip
 
 # Download utility modules
 wget https://github.com/mbsantiago/AI-Intervene-Training-Material/raw/refs/heads/main/BioacousticsAI/evaluation_utils.py
