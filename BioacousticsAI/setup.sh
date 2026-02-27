@@ -6,7 +6,7 @@ uv pip install "batdetect2==1.0.8"
 uv pip install git+https://github.com/google-research/perch-hoplite.git
 
 # Download data
-gdown 1KQ0aRJZM2L9xu-dW8yAus3vYClZ1PBh2
+gdown 1EiM_duAXfI0jgW-yGmCVYtYglCPey3C2
 
 # Unzip data
 unzip data.zip
